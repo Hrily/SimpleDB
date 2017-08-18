@@ -1,8 +1,9 @@
 package simpledb;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a
@@ -12,66 +13,76 @@ import java.util.Iterator;
 public class Tuple implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    
+    private TupleDesc tupleDesc;
+    private RecordId recordId;
+    List<Field> fieldValues;
 
     /**
      * Create a new tuple with the specified schema (type).
      * 
+     * @author hrily
      * @param td
      *            the schema of this tuple. It must be a valid TupleDesc
      *            instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
+        this.tupleDesc = td;
+        fieldValues = new ArrayList<Field>();
+        for(int i = 0; i < td.numFields(); i++)
+            fieldValues.add(null);
     }
 
     /**
+     * @author hrily
      * @return The TupleDesc representing the schema of this tuple.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return tupleDesc;
     }
 
     /**
+     * @author hrily
      * @return The RecordId representing the location of this tuple on disk. May
      *         be null.
      */
     public RecordId getRecordId() {
-        // some code goes here
-        return null;
+        return recordId;
     }
 
     /**
      * Set the RecordId information for this tuple.
      * 
+     * @author hrily
      * @param rid
      *            the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // some code goes here
+        this.recordId = rid;
     }
 
     /**
      * Change the value of the ith field of this tuple.
      * 
+     * @author hrily
      * @param i
      *            index of the field to change. It must be a valid index.
      * @param f
      *            new value for the field.
      */
     public void setField(int i, Field f) {
-        // some code goes here
+        fieldValues.set(i, f);
     }
 
     /**
+     * @author hrily
      * @return the value of the ith field, or null if it has not been set.
      * 
      * @param i
      *            field index to return. Must be a valid index.
      */
     public Field getField(int i) {
-        // some code goes here
-        return null;
+        return fieldValues.get(i);
     }
 
     /**
@@ -81,19 +92,23 @@ public class Tuple implements Serializable {
      * column1\tcolumn2\tcolumn3\t...\tcolumnN\n
      * 
      * where \t is any whitespace, except newline, and \n is a newline
+     * 
+     * @author hrily
      */
     public String toString() {
-        // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        StringBuilder stringBuilder = new StringBuilder();
+        for(Field field: fieldValues)
+            stringBuilder.append(field.toString()).append("\t");
+        return stringBuilder.append("\n").toString();
     }
     
     /**
+     * @author hrily
      * @return
      *        An iterator which iterates over all the fields of this tuple
      * */
     public Iterator<Field> fields()
     {
-        // some code goes here
-        return null;
+        return fieldValues.iterator();
     }
 }
