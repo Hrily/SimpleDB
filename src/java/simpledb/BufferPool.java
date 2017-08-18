@@ -1,6 +1,8 @@
 package simpledb;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -19,6 +21,12 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
+    
+    private int numPages;
+    
+    private HashMap<PageId, Page> pages;
+    private HashMap<PageId, ArrayList<TransactionId>> pageTransactions;
+    private HashMap<PageId, Permissions> pagePermissions;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -26,7 +34,10 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+        this.numPages = numPages;
+        pages = new HashMap<PageId, Page>();
+        pageTransactions = new HashMap<PageId, ArrayList<TransactionId>>();
+        pagePermissions = new HashMap<PageId, Permissions>();
     }
 
     /**
@@ -40,14 +51,53 @@ public class BufferPool {
      * space in the buffer pool, an page should be evicted and the new page
      * should be added in its place.
      *
+     * @author hrily
      * @param tid the ID of the transaction requesting the page
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        // Check if cache size is greeater than numPages
+        if(pages.size() >= numPages){
+            // TODO: evict page to make some space
+            // throw DBException for now
+            throw new DbException("Buffer full. Eviction not yet implemented");
+        }
+        // If page already in buffer
+        if(pages.containsKey(pid)){
+            // Check if transaction can acquire lock
+            /**
+             * If page has no lock, transaction can acquire any lock
+             * If page has read lock, transaction can acquire only read lock.
+             * If page has write lock, transaction can't acquire any lock
+             */
+            if(pagePermissions.get(pid).equals(Permissions.READ_WRITE))
+                throw new TransactionAbortedException();
+            if(pagePermissions.get(pid).equals(Permissions.READ_ONLY) 
+                    && perm.equals(Permissions.READ_WRITE))
+                throw new TransactionAbortedException();
+            // Update permissions if required
+            if(pagePermissions.get(pid).equals(Permissions.READ_ONLY))
+                pagePermissions.put(pid, perm);
+            // Add transaction id if possible
+            if(!pageTransactions.get(pid).contains(tid))
+                pageTransactions.get(pid).add(tid);
+            // Return the page
+            return pages.get(pid);
+        }
+        // Page not in Buffer
+        // Add page to Buffer
+        DbFile dbFile = Database.getCatalog().getDbFile(pid.getTableId());
+        pages.put(pid, dbFile.readPage(pid));
+        // Add transaction id to page
+        if(!pageTransactions.containsKey(pid))
+            pageTransactions.put(pid, new ArrayList<TransactionId>());
+        pageTransactions.get(pid).add(tid);
+        // Update page permissions
+        pagePermissions.put(pid, perm);
+        // return page
+        return pages.get(pid);
     }
 
     /**
@@ -59,7 +109,7 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param pid the ID of the page to unlock
      */
-    public  void releasePage(TransactionId tid, PageId pid) {
+    public void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for proj1
     }
