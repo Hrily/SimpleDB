@@ -15,18 +15,39 @@ import java.util.*;
  */
 
 public class Catalog {
+    
+    private class CatalogItem {
+        
+        DbFile dbFile;
+        String name;
+        String pkeyFeild;
 
+        public CatalogItem(DbFile dbFile, String name, String pkeyFeild) {
+            this.dbFile = dbFile;
+            this.name = name;
+            this.pkeyFeild = pkeyFeild;
+        }
+        
+    }
+
+    private HashMap<Integer, CatalogItem> idItemMap;
+    private HashMap<String, Integer> nameIdMap;
+    
     /**
      * Constructor.
      * Creates a new, empty catalog.
+     * @author hrily
      */
     public Catalog() {
-        // some code goes here
+        idItemMap = new HashMap<Integer,CatalogItem>();
+        nameIdMap = new HashMap<String, Integer>();
     }
 
     /**
      * Add a new table to the catalog.
      * This table's contents are stored in the specified DbFile.
+     * 
+     * @author hrily
      * @param file the contents of the table to add;  file.getId() is the identfier of
      *    this file/tupledesc param for the calls getTupleDesc and getFile
      * @param name the name of the table -- may be an empty string.  May not be null.  If a name
@@ -34,7 +55,8 @@ public class Catalog {
      * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+        idItemMap.put(file.getId(), new CatalogItem(file, name, pkeyField));
+        nameIdMap.put(name, file.getId());
     }
 
     public void addTable(DbFile file, String name) {
@@ -54,53 +76,82 @@ public class Catalog {
 
     /**
      * Return the id of the table with a specified name,
+     * 
+     * @author hrily
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        if(!nameIdMap.containsKey(name))
+            throw new NoSuchElementException();
+        return nameIdMap.get(name);
     }
 
     /**
      * Returns the tuple descriptor (schema) of the specified table
+     * 
+     * @author hrily
      * @param tableid The id of the table, as specified by the DbFile.getId()
      *     function passed to addTable
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if(!idItemMap.containsKey(tableid))
+            throw new NoSuchElementException();
+        return idItemMap.get(tableid).dbFile.getTupleDesc();
     }
 
     /**
      * Returns the DbFile that can be used to read the contents of the
      * specified table.
+     * 
+     * @author hrily
      * @param tableid The id of the table, as specified by the DbFile.getId()
      *     function passed to addTable
      */
     public DbFile getDbFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if(!idItemMap.containsKey(tableid))
+            throw new NoSuchElementException();
+        return idItemMap.get(tableid).dbFile;
     }
 
+    /**
+     * Returns the Primary key of the table w/ tableId
+     * 
+     * @author hrily
+     * @param tableid The id of the table, as specified by the DbFile.getId()
+     *     function passed to addTable
+     */
     public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+        if(!idItemMap.containsKey(tableid))
+            throw new NoSuchElementException();
+        return idItemMap.get(tableid).pkeyFeild;
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
+        return idItemMap.keySet().iterator();
     }
 
-    public String getTableName(int id) {
-        // some code goes here
-        return null;
+    /**
+     * Returns the name of the table w/ tableId
+     * 
+     * @author hrily
+     * @param tableid The id of the table, as specified by the DbFile.getId()
+     *     function passed to addTable
+     */
+    public String getTableName(int tableid) {
+        if(!idItemMap.containsKey(tableid))
+            throw new NoSuchElementException();
+        return idItemMap.get(tableid).name;
     }
     
-    /** Delete all tables from the catalog */
+    /** 
+     * Delete all tables from the catalog 
+     * 
+     * @author hrily
+     */
     public void clear() {
-        // some code goes here
+        idItemMap.clear();
+        nameIdMap.clear();
     }
     
     /**
@@ -158,4 +209,3 @@ public class Catalog {
         }
     }
 }
-
