@@ -17,7 +17,6 @@ public class HeapFile implements DbFile {
 
     File file;
     TupleDesc tupleDesc;
-    int pageSize;
     long fileSize;
     
     /**
@@ -33,9 +32,6 @@ public class HeapFile implements DbFile {
     public HeapFile(File f, TupleDesc td) {
         this.file = f;
         this.tupleDesc = td;
-        // Calculate size per page which can accomodate slots of total
-        //  memory upto BufferPool.PAGE_SIZE
-        pageSize = BufferPool.PAGE_SIZE - (BufferPool.PAGE_SIZE % td.getSize());
         fileSize = f.length();
     }
 
@@ -82,8 +78,8 @@ public class HeapFile implements DbFile {
      */
     public Page readPage(PageId pid) {
         // Offset to seek
-        int offset = pageSize * pid.pageNumber();
-        byte[] data = new byte[pageSize];
+        int offset = BufferPool.PAGE_SIZE * pid.pageNumber();
+        byte[] data = new byte[BufferPool.PAGE_SIZE];
         try{
             RandomAccessFile raf = new RandomAccessFile(file, "r");
             raf.seek(offset);
@@ -109,7 +105,7 @@ public class HeapFile implements DbFile {
      * @author hrily
      */
     public int numPages() {
-        return (int) Math.ceil((double) file.length() / pageSize);
+        return (int) Math.ceil((double) file.length() / BufferPool.PAGE_SIZE);
     }
 
     // see DbFile.java for javadocs
@@ -136,7 +132,7 @@ public class HeapFile implements DbFile {
      * @return DBFileIterator iterator to the tuples
      */
     public DbFileIterator iterator(TransactionId tid) {
-        return new HeapFileIterator(tid, this.getId(), pageSize, this.numPages());
+        return new HeapFileIterator(tid, this.getId(), this.numPages());
     }
     
     /**
@@ -149,7 +145,6 @@ public class HeapFile implements DbFile {
         
         TransactionId tid;
         int pageCounter;
-        int pageSize;
         int tableId;
         int numPages;
         Page page;
@@ -161,14 +156,12 @@ public class HeapFile implements DbFile {
          * 
          * @param tid TransactionId of requesting transaction
          * @param tableId id of the HeapFile
-         * @param pageSize pageSize of HeapFile
          * @param numPages number of pages in file
          */
-        public HeapFileIterator(TransactionId tid, int tableId, int pageSize, int numPages) {
+        public HeapFileIterator(TransactionId tid, int tableId, int numPages) {
             this.tid = tid;
             this.pageCounter = 0;
             this.tableId = tableId;
-            this.pageSize = pageSize;
             this.numPages = numPages;
         }
         
@@ -211,8 +204,19 @@ public class HeapFile implements DbFile {
             // Check if tuple has next
             if(tuples.hasNext())
                 return true;
+            // Check if all pages are iterated
+            if(pageCounter + 1 >= numPages)
+                return false;
             // Else check if there is next page
-            return pageCounter + 1 < numPages;
+            // If Page is exhausted get new page tuples
+            while(pageCounter + 1 < numPages && !tuples.hasNext()){
+                // Release the current page
+                Database.getBufferPool().releasePage(tid, pid);
+                // Get tuples of next page
+                pageCounter++;
+                tuples = getTuples(pageCounter);
+            }
+            return this.hasNext();
         }
 
         /**
@@ -227,14 +231,6 @@ public class HeapFile implements DbFile {
             // If there are no tuples, throw exception
             if(tuples == null) 
                 throw new NoSuchElementException();
-            // If Page is exhausted get new page tuples
-            if(!tuples.hasNext()){
-                // Release the current page
-                Database.getBufferPool().releasePage(tid, pid);
-                // Get tuples of next page
-                pageCounter++;
-                tuples = getTuples(pageCounter);
-            }
             return tuples.next();
         }
 
@@ -245,6 +241,7 @@ public class HeapFile implements DbFile {
          * @throws TransactionAbortedException 
          */
         public void rewind() throws DbException, TransactionAbortedException {
+            close();
             open();
         }
 
@@ -256,7 +253,6 @@ public class HeapFile implements DbFile {
             Database.getBufferPool().releasePage(tid, pid);
             tuples = null;
             pid = null;
-            tid = null;
         }
         
     }

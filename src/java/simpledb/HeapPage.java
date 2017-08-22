@@ -69,7 +69,7 @@ public class HeapPage implements Page {
      */
     private int getNumTuples() {        
         int tupleSize = td.getSize();
-        return (int) Math.floor((BufferPool.PAGE_SIZE * 8) / (tupleSize * 8 + 1));
+        return (int) Math.floor((BufferPool.PAGE_SIZE * 8.0) / (tupleSize * 8.0 + 1.0));
     }
 
     /**
@@ -81,7 +81,7 @@ public class HeapPage implements Page {
      *          HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {
-        return (int) Math.ceil(numSlots / 8);
+        return (int) Math.ceil(numSlots / 8.0);
     }
     
     /** 

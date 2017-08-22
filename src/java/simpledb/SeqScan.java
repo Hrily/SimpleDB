@@ -10,11 +10,18 @@ import java.util.*;
 public class SeqScan implements DbIterator {
 
     private static final long serialVersionUID = 1L;
+    
+    TransactionId tid;
+    int tableId;
+    String tableAlias;
+    
+    DbFileIterator iterator;
 
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
      * 
+     * @author hrily
      * @param tid
      *            The transaction this scan is running as a part of.
      * @param tableid
@@ -28,29 +35,36 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+        this.tid = tid;
+        this.tableId = tableid;
+        this.tableAlias = tableAlias;
     }
 
     /**
+     * @author hrily
      * @return
      *       return the table name of the table the operator scans. This should
      *       be the actual name of the table in the catalog of the database
      * */
     public String getTableName() {
-        return null;
+        return Database.getCatalog().getTableName(tableId);
     }
     
     /**
+     * @author hrily
      * @return Return the alias of the table this operator scans. 
      * */
     public String getAlias()
     {
-        // some code goes here
-        return null;
+        if(tableAlias == null)
+            return "null";
+        return tableAlias;
     }
 
     /**
      * Reset the tableid, and tableAlias of this operator.
+     * 
+     * @author hrily
      * @param tableid
      *            the table to scan.
      * @param tableAlias
@@ -62,15 +76,25 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public void reset(int tableid, String tableAlias) {
-        // some code goes here
+        this.tableId = tableid;
+        this.tableAlias = tableAlias;
     }
 
     public SeqScan(TransactionId tid, int tableid) {
         this(tid, tableid, Database.getCatalog().getTableName(tableid));
     }
 
+    /**
+     * Opens the Scanner for reading
+     * 
+     * @author hrily
+     * @throws DbException
+     * @throws TransactionAbortedException 
+     */
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        DbFile file = Database.getCatalog().getDbFile(tableId);
+        iterator = file.iterator(tid);
+        iterator.open();
     }
 
     /**
@@ -79,31 +103,59 @@ public class SeqScan implements DbIterator {
      * becomes useful when joining tables containing a field(s) with the same
      * name.
      * 
+     * @author hrily
      * @return the TupleDesc with field names from the underlying HeapFile,
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return Database.getCatalog().getTupleDesc(tableId);
     }
 
+    /**
+     * Returns true if the iterator still has tuples
+     * 
+     * @author hrily
+     * @return boolean
+     * @throws TransactionAbortedException
+     * @throws DbException 
+     */
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return false;
+        return iterator.hasNext();
+                
     }
 
+    /**
+     * Return next tuple in the iterator
+     * 
+     * @return Tuple
+     * @throws NoSuchElementException
+     * @throws TransactionAbortedException
+     * @throws DbException 
+     */
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        return iterator.next();
     }
 
+    /**
+     * Closes the iterator
+     * 
+     * @author hrily
+     */
     public void close() {
-        // some code goes here
+        iterator.close();
     }
 
+    /**
+     * Rewinds the iterator to the start
+     * 
+     * @author hrily
+     * @throws DbException
+     * @throws NoSuchElementException
+     * @throws TransactionAbortedException 
+     */
     public void rewind() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+        iterator.rewind();
     }
 }
