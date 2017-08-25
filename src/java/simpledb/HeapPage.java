@@ -13,13 +13,13 @@ import java.io.*;
  */
 public class HeapPage implements Page {
 
-    HeapPageId pid;
-    TupleDesc td;
-    byte header[];
-    Tuple tuples[];
-    int numSlots;
+    private HeapPageId pid;
+    private TupleDesc td;
+    private byte header[];
+    private Tuple tuples[];
+    private int numSlots;
 
-    byte[] oldData;
+    private byte[] oldData;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk.

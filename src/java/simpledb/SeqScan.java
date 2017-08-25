@@ -11,11 +11,11 @@ public class SeqScan implements DbIterator {
 
     private static final long serialVersionUID = 1L;
     
-    TransactionId tid;
-    int tableId;
-    String tableAlias;
+    private TransactionId tid;
+    private int tableId;
+    private String tableAlias;
     
-    DbFileIterator iterator;
+    private DbFileIterator iterator;
 
     /**
      * Creates a sequential scan over the specified table as a part of the

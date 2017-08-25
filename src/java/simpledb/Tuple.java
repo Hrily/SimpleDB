@@ -107,8 +107,54 @@ public class Tuple implements Serializable {
      * @return
      *        An iterator which iterates over all the fields of this tuple
      * */
-    public Iterator<Field> fields()
-    {
+    public Iterator<Field> fields() {
         return fieldValues.iterator();
     }
+    
+    /**
+     * Merges two tuples
+     * @param t1 Tuple 1
+     * @param t2 Tuple 2
+     * @return tuple The merged Tuple
+     */
+    public static Tuple merge(Tuple t1, Tuple t2) {
+        Tuple tuple = new Tuple(
+                TupleDesc.merge(t1.getTupleDesc(), t2.getTupleDesc()));
+        tuple.fieldValues = new ArrayList<Field>();
+        tuple.fieldValues.addAll(t1.fieldValues);
+        tuple.fieldValues.addAll(t2.fieldValues);
+        return tuple;
+    }
+    
+    /**
+     * Removes a field from the tuple 
+     * Also chages the tuple desc accordingly
+     * @param i The index of field to remove
+     */
+    public void removeField(int i){
+        fieldValues.remove(i);
+        tupleDesc.removeField(i);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o == null)
+            return false;
+        if(o.getClass() != this.getClass())
+            return false;
+        Tuple tuple = (Tuple) o;
+        if(this.fieldValues.size() != tuple.fieldValues.size())
+            return false;
+        for(int i = 0; i < this.fieldValues.size(); i++)
+            if(!this.fieldValues.get(i).equals(
+                    tuple.fieldValues.get(i)))
+                return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return fieldValues.hashCode();
+    }
+    
 }
