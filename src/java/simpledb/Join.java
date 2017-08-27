@@ -135,11 +135,11 @@ public class Join extends Operator {
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        if(!child1.hasNext())
+        if(!child1.hasNext() && tuple1 == null)
             return null;
         if(tuple1 == null)
             tuple1 = child1.next();
-        if(!child2.hasNext()){
+        else if(!child2.hasNext()){
             child2.rewind();
             tuple1 = child1.hasNext()
                     ? child1.next()
