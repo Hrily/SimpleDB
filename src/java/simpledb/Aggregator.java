@@ -1,6 +1,10 @@
 package simpledb;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * The common interface for any class that can compute an aggregate over a
@@ -62,5 +66,61 @@ public interface Aggregator extends Serializable {
      * @see simpledb.TupleIterator for a possible helper
      */
     public DbIterator iterator();
+    
+    
+    /**
+     * TupleMapIterator is class which converts HashMap<Field, Tuple>
+     * to a DbIterator.
+     * 
+     * @author hrily
+     * @see DbIterator
+     */
+    public static class TupleMapIterator implements DbIterator {
+        
+        HashMap<Field, Tuple> fieldTupleMap;
+        TupleDesc tupleDesc;
+        Field[] keyArray;
+        int position;
+
+        public TupleMapIterator(HashMap<Field, Tuple> fieldTupleMap, TupleDesc tupleDesc) {
+            this.fieldTupleMap = fieldTupleMap;
+            this.tupleDesc = tupleDesc;
+            this.keyArray = fieldTupleMap
+                    .keySet()
+                    .toArray(new Field[fieldTupleMap.size()]);
+            this.position = -1;
+        }
+
+        public void open() throws DbException, TransactionAbortedException {
+            position = 0;
+        }
+
+        public boolean hasNext() throws DbException, TransactionAbortedException {
+            if(position < 0)
+                throw new DbException("Iterator not opened...");
+            return position < keyArray.length;
+        }
+
+        public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+            if(position < 0)
+                throw new DbException("Iterator not opened...");
+            if(!this.hasNext())
+                throw new NoSuchElementException();
+            return fieldTupleMap.get(keyArray[position++]);
+        }
+
+        public void rewind() throws DbException, TransactionAbortedException {
+            open();
+        }
+
+        public TupleDesc getTupleDesc() {
+            return tupleDesc;
+        }
+
+        public void close() {
+            position = -1;
+        }
+        
+    }
     
 }
