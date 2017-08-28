@@ -105,7 +105,7 @@ public interface Aggregator extends Serializable {
             if(position < 0)
                 throw new DbException("Iterator not opened...");
             if(!this.hasNext())
-                throw new NoSuchElementException();
+                return null;
             return fieldTupleMap.get(keyArray[position++]);
         }
 

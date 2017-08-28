@@ -60,8 +60,6 @@ public class IntegerAggregator implements Aggregator {
     private HashMap<Field, MyInteger> fieldResMap;
     private TupleDesc tupleDesc;
     private Tuple noGroupTuple;
-    
-    private static Field noGroupField = new IntField(Integer.MIN_VALUE);
             
     /**
      * Aggregate constructor
@@ -108,11 +106,11 @@ public class IntegerAggregator implements Aggregator {
         Field field = (gbField != NO_GROUPING)
                 ? tup.getField(gbField)
                 : noGroupField;
-        if(!fieldTupleMap.containsKey(field) && index == 1){
+        if(!fieldTupleMap.containsKey(field)){
             fieldResMap.put(field, new MyInteger(op));
             fieldTupleMap.put(field, new Tuple(tupleDesc));
             fieldTupleMap.get(field).setField(0, field);
-            fieldTupleMap.get(field).setField(1, new IntField(0));
+            fieldTupleMap.get(field).setField(index, new IntField(0));
         }
         IntField field2 = (IntField) tup.getField(aField);
         fieldResMap.get(field).add(field2.getValue());
@@ -131,11 +129,6 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        if(gbField == NO_GROUPING){
-            HashMap<Field, Tuple> hash = new HashMap<Field, Tuple>();
-            hash.put(new IntField(0), noGroupTuple);
-            return new Aggregator.TupleMapIterator(hash, tupleDesc);
-        }
         return new Aggregator.TupleMapIterator(fieldTupleMap, tupleDesc);
     }
 
