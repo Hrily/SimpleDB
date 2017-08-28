@@ -2,8 +2,6 @@ package simpledb;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -12,6 +10,8 @@ import java.util.NoSuchElementException;
  */
 public interface Aggregator extends Serializable {
     static final int NO_GROUPING = -1;
+    
+    public static Field noGroupField = new IntField(Integer.MIN_VALUE);
 
     public enum Op implements Serializable {
         MIN, MAX, SUM, AVG, COUNT;
