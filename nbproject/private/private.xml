@@ -3,9 +3,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/JoinPredicate.java</file>
-            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Join.java</file>
-            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Field.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/TupleDesc.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/StringAggregator.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Aggregate.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/test/simpledb/AggregateTest.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Aggregator.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/test/simpledb/TestUtil.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/IntegerAggregator.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Operator.java</file>
         </group>
     </open-files>
 </project-private>

@@ -17,7 +17,6 @@ public class HeapFile implements DbFile {
 
     private File file;
     private TupleDesc tupleDesc;
-    private long fileSize;
     
     /**
      * Constructs a heap file backed by the specified file.
@@ -32,7 +31,6 @@ public class HeapFile implements DbFile {
     public HeapFile(File f, TupleDesc td) {
         this.file = f;
         this.tupleDesc = td;
-        fileSize = f.length();
     }
 
     /**
@@ -93,35 +91,83 @@ public class HeapFile implements DbFile {
         return null;
     }
 
-    // see DbFile.java for javadocs
+    /**
+     * Write given page to disk
+     * 
+     * @author hrily
+     * @param page Page to write
+     * @throws IOException 
+     */
     public void writePage(Page page) throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        byte[] data = page.getPageData();
+        int offset = BufferPool.PAGE_SIZE * page.getId().pageNumber();
+        try{
+            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            raf.seek(offset);
+            raf.write(data);
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
     }
 
     /**
      * Returns the number of pages in this HeapFile.
      * 
      * @author hrily
+     * @return The number of pages
      */
     public int numPages() {
         return (int) Math.ceil((double) file.length() / BufferPool.PAGE_SIZE);
     }
 
-    // see DbFile.java for javadocs
+    /**
+     * Inserts the specified tuple to the file on behalf of transaction.
+     * This method will acquire a lock on the affected pages of the file, and
+     * may block until the lock can be acquired.
+     *
+     * @author hrily
+     * @param tid The transaction performing the update
+     * @param t The tuple to add.  This tuple should be updated to reflect that
+     *          it is now stored in this file.
+     * @return An ArrayList contain the pages that were modified
+     * @throws DbException if the tuple cannot be added
+     * @throws IOException if the needed file can't be read/written
+     */
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for proj1
+        ArrayList<Page> pages = new ArrayList<Page>();
+        for(int i = 0; i < numPages(); i++){
+            PageId pid = new HeapPageId(this.getId(), i);
+            HeapPage page 
+                = (HeapPage) Database
+                    .getBufferPool()
+                    .getPage(tid, pid, Permissions.READ_ONLY);
+            if(page.getNumEmptySlots() > 0){
+                page = (HeapPage) Database
+                    .getBufferPool()
+                    .getPage(tid, pid, Permissions.READ_WRITE);
+                page.insertTuple(t);
+                pages.add(page);
+                break;
+            }
+        }
+        if(pages.isEmpty()){
+            HeapPageId pid = new HeapPageId(this.getId(), this.numPages());
+            HeapPage heapPage = new HeapPage(pid, HeapPage.createEmptyPageData());
+            heapPage.insertTuple(t);
+            this.writePage(heapPage);
+            pages.add(heapPage);
+        }
+        return pages;
     }
 
     // see DbFile.java for javadocs
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for proj1
+        PageId pid = t.getRecordId().getPageId();
+        HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+        page.deleteTuple(t);
+        return page;
     }
 
     /**

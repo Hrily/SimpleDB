@@ -74,9 +74,5 @@ public class StringAggregator implements Aggregator {
     public DbIterator iterator() {
         return new Aggregator.TupleMapIterator(fieldTupleMap, tupleDesc);
     }
-    
-    public TupleDesc getTupleDesc(){
-        return tupleDesc;
-    }
 
 }

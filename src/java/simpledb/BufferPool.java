@@ -67,20 +67,9 @@ public class BufferPool {
         // If page already in buffer
         if(pages.containsKey(pid)){
             // Check if transaction can acquire lock
-            /**
-             * If page has no lock, transaction can acquire any lock
-             * If page has read lock, transaction can acquire only read lock.
-             * If page has write lock, transaction can't acquire any lock
-             */
-            if(pagePermissions.get(pid).equals(Permissions.READ_WRITE))
-                throw new TransactionAbortedException();
-            if(pagePermissions.get(pid).equals(Permissions.READ_ONLY) 
-                    && perm.equals(Permissions.READ_WRITE))
-                throw new TransactionAbortedException();
-            // Update permissions if required
-            if(pagePermissions.get(pid).equals(Permissions.READ_ONLY))
-                pagePermissions.put(pid, perm);
+            // TODO: Implement locking mechanism
             // Add transaction id if possible
+            pagePermissions.put(pid, perm);
             if(!pageTransactions.get(pid).contains(tid))
                 pageTransactions.get(pid).add(tid);
             // Return the page
@@ -160,8 +149,15 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for proj1
+        DbFile file = Database.getCatalog().getDbFile(tableId);
+        ArrayList<Page> pageList = file.insertTuple(tid, t);
+        for(Page page: pageList){
+            page.markDirty(true, tid);
+            pages.put(page.getId(), page);
+            if(!pageTransactions.get(page.getId()).contains(tid))
+                pageTransactions.get(page.getId()).add(tid);
+            pagePermissions.put(page.getId(), Permissions.READ_ONLY);
+        }
     }
 
     /**
@@ -179,8 +175,10 @@ public class BufferPool {
      */
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for proj1
+        int tableId = t.getRecordId().getPageId().getTableId();
+        DbFile file = Database.getCatalog().getDbFile(tableId);
+        Page page = file.deleteTuple(tid, t);
+        page.markDirty(true, tid);
     }
 
     /**
