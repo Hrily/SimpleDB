@@ -120,8 +120,7 @@ public class SeqScan implements DbIterator {
      * @throws DbException 
      */
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        return iterator.hasNext();
-                
+        return iterator.hasNext();     
     }
 
     /**
