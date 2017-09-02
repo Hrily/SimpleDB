@@ -3,7 +3,7 @@ package simpledb;
 /** Unique identifier for HeapPage objects. */
 public class HeapPageId implements PageId {
     
-    int tableId, pageNo;
+    private int tableId, pageNo;
 
     /**
      * Constructor. Create a page id structure for a specific page of a
@@ -43,7 +43,8 @@ public class HeapPageId implements PageId {
      * @see BufferPool
      */
     public int hashCode() {
-        return Integer.parseInt(String.valueOf(tableId) + String.valueOf(pageNo));
+        String hash = String.valueOf(tableId) + String.valueOf(pageNo);
+        return hash.hashCode();
     }
 
     /**

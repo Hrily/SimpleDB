@@ -13,13 +13,16 @@ import java.io.*;
  */
 public class HeapPage implements Page {
 
-    HeapPageId pid;
-    TupleDesc td;
-    byte header[];
-    Tuple tuples[];
-    int numSlots;
+    private HeapPageId pid;
+    private TupleDesc td;
+    private byte header[];
+    private Tuple tuples[];
+    private int numSlots;
 
-    byte[] oldData;
+    private byte[] oldData;
+    
+    TransactionId dirtyTid;
+    boolean dirty;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk.
@@ -69,7 +72,7 @@ public class HeapPage implements Page {
      */
     private int getNumTuples() {        
         int tupleSize = td.getSize();
-        return (int) Math.floor((BufferPool.PAGE_SIZE * 8) / (tupleSize * 8 + 1));
+        return (int) Math.floor((BufferPool.PAGE_SIZE * 8.0) / (tupleSize * 8.0 + 1.0));
     }
 
     /**
@@ -81,7 +84,7 @@ public class HeapPage implements Page {
      *          HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {
-        return (int) Math.ceil(numSlots / 8);
+        return (int) Math.ceil(numSlots / 8.0);
     }
     
     /** 
@@ -234,43 +237,68 @@ public class HeapPage implements Page {
     /**
      * Delete the specified tuple from the page;  the tuple should be updated to reflect
      *   that it is no longer stored on any page.
+     * 
+     * @author hrily
      * @throws DbException if this tuple is not on this page, or tuple slot is
      *         already empty.
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        if(!this.pid.equals(recordId.getPageId()))
+            throw new DbException("Tuple not in this page!");
+        if(!isSlotUsed(recordId.tupleno()))
+            throw new DbException("Tuple not in this page!");
+        // Mark slot as unused
+        markSlotUsed(recordId.tupleno(), false);
+    }
+    
+    int getFirstEmptySlot(){
+        for(int i = 0; i < numSlots; i++)
+            if(!isSlotUsed(i))
+                return i;
+        return -1;
     }
 
     /**
      * Adds the specified tuple to the page;  the tuple should be updated to reflect
      *  that it is now stored on this page.
+     * 
+     * @author hrily
      * @throws DbException if the page is full (no empty slots) or tupledesc
      *         is mismatch.
      * @param t The tuple to add.
      */
     public void insertTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        int emptySlot = getFirstEmptySlot();
+        if(emptySlot == -1)
+            throw new DbException("No Empty Slot to insert");
+        if(!t.getTupleDesc().equals(this.td))
+            throw new DbException("Tuple Description mismatch.");
+        RecordId recordId = new RecordId(pid, emptySlot);
+        t.setRecordId(recordId);
+        tuples[emptySlot] = t;
+        markSlotUsed(emptySlot, true);
     }
 
     /**
      * Marks this page as dirty/not dirty and record that transaction
      * that did the dirtying
+     * @author hrily
      */
     public void markDirty(boolean dirty, TransactionId tid) {
-        // some code goes here
-	// not necessary for lab1
+        this.dirty = dirty;
+        this.dirtyTid = (dirty) ? tid : null;
     }
 
     /**
      * Returns the tid of the transaction that last dirtied this page, or null if the page is not dirty
+     * 
+     * @author hrily
+     * @return TransactionId
      */
     public TransactionId isDirty() {
-        // some code goes here
-	// Not necessary for lab1
-        return null;      
+        return dirtyTid;
     }
 
     /**
@@ -299,10 +327,21 @@ public class HeapPage implements Page {
 
     /**
      * Abstraction to fill or clear a slot on this page.
+     * 
+     * @author hrily
+     * @param i The slot index
+     * @param value The value to assign
      */
     private void markSlotUsed(int i, boolean value) {
-        // some code goes here
-        // not necessary for lab1
+        int bits = header[ i / 8 ];
+        int index = i % 8;
+        // Mark or unmark bit
+        if(value)
+            bits |= 1 << index;
+        else
+            bits &= ~(1 << index);
+        // Set value back
+        header[ i / 8 ] = (byte) bits;
     }
 
     /**

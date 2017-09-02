@@ -53,10 +53,15 @@ public class Predicate implements Serializable {
             throw new IllegalStateException("impossible to reach here");
         }
     }
+    
+    private int field;
+    private Op op;
+    private Field operand;
 
     /**
      * Constructor.
      * 
+     * @author hrily
      * @param field
      *            field number of passed in tuples to compare against.
      * @param op
@@ -65,34 +70,33 @@ public class Predicate implements Serializable {
      *            field value to compare passed in tuples to
      */
     public Predicate(int field, Op op, Field operand) {
-        // some code goes here
+        this.field = field;
+        this.op = op;
+        this.operand = operand;
     }
 
     /**
+     * @author hrily
      * @return the field number
      */
-    public int getField()
-    {
-        // some code goes here
-        return -1;
+    public int getField() {
+        return field;
     }
 
     /**
+     * @author hrily
      * @return the operator
      */
-    public Op getOp()
-    {
-        // some code goes here
-        return null;
+    public Op getOp() {
+        return op;
     }
     
     /**
+     * @author hrily
      * @return the operand
      */
-    public Field getOperand()
-    {
-        // some code goes here
-        return null;
+    public Field getOperand() {
+        return operand;
     }
     
     /**
@@ -101,21 +105,30 @@ public class Predicate implements Serializable {
      * the constructor. The comparison can be made through Field's compare
      * method.
      * 
+     * @author hrily
      * @param t
      *            The tuple to compare against
      * @return true if the comparison is true, false otherwise.
      */
     public boolean filter(Tuple t) {
-        // some code goes here
-        return false;
+        return t.getField(field).compare(op, operand);
     }
 
     /**
      * Returns something useful, like "f = field_id op = op_string operand =
      * operand_string
+     * 
+     * @author hrily
      */
+    @Override
     public String toString() {
-        // some code goes here
-        return "";
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("f = ")
+            .append(field)
+            .append(" op = ")
+            .append(op.toString())
+            .append(" operand = ")
+            .append(operand.toString());
+        return stringBuilder.toString();
     }
 }

@@ -105,6 +105,16 @@ public class TupleDesc implements Serializable {
     public int numFields() {
         return fieldList.size();
     }
+    
+    /**
+     * Removes field from the descriptor
+     * 
+     * @author hrily
+     * @param i The index of field to remove
+     */
+    public void removeField(int i){
+        
+    }
 
     /**
      * Gets the (possibly null) field name of the ith field of this TupleDesc.
@@ -121,6 +131,8 @@ public class TupleDesc implements Serializable {
         if(i < 0 || i >= fieldList.size())
             throw new NoSuchElementException();
         // return name of ith feild
+        if(fieldList.get(i).fieldName == null)
+            return "null";
         return fieldList.get(i).fieldName;
     }
 
