@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.util.*;
+import simpledb.TupleDesc.TDItem;
 
 /**
  * SeqScan is an implementation of a sequential scan access method that reads
@@ -108,7 +109,18 @@ public class SeqScan implements DbIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        return Database.getCatalog().getTupleDesc(tableId);
+        TupleDesc td = Database.getCatalog().getTupleDesc(tableId);
+        Iterator<TDItem> tdItems = td.iterator();
+        Type[] typeAr = new Type[td.numFields()];
+        String[] fieldNameAr= new String[td.numFields()];
+        int i = 0;
+        while(tdItems.hasNext()){
+            TDItem tdItem = tdItems.next();
+            typeAr[i] = tdItem.fieldType;
+            fieldNameAr[i] = tableAlias + "." + tdItem.fieldName;
+            i++;
+        }
+        return new TupleDesc(typeAr, fieldNameAr);
     }
 
     /**

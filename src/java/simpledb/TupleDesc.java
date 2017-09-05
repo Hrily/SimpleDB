@@ -113,7 +113,7 @@ public class TupleDesc implements Serializable {
      * @param i The index of field to remove
      */
     public void removeField(int i){
-        
+        fieldList.remove(i);
     }
 
     /**
@@ -154,7 +154,7 @@ public class TupleDesc implements Serializable {
         // return name of ith feild
         return fieldList.get(i).fieldType;
     }
-
+    
     /**
      * Find the index of the field with a given name.
      * 
@@ -166,10 +166,17 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
+        if(name.equals("p.id")){
+            for(int i = 0; i < fieldList.size(); i++)
+                System.out.println("L: " + fieldList.get(i).fieldName + " " + fieldList.get(i).fieldName.equals(name));
+        }
         // Search for name in fieldList
         for(int i = 0; i < fieldList.size(); i++)
             if(fieldList.get(i).fieldName.equals(name))
                 return i;
+        System.out.println(name);
+        for(int i = 0; i < fieldList.size(); i++)
+            System.out.println("N: " + fieldList.get(i).fieldName + " " + fieldList.get(i).fieldName.equals(name));
         // If not found
         throw new NoSuchElementException();
     }
@@ -185,6 +192,27 @@ public class TupleDesc implements Serializable {
         for(TDItem tdItem : fieldList)
             sizeInBytes += tdItem.fieldType.getLen();
         return sizeInBytes;                
+    }
+    
+    /**
+     * Gets tuple desc with fieldnames of format table.field
+     * @param tableName
+     * @return TupleDesc with fieldnames of format table.field
+     */
+    public TupleDesc getAbsoluteTupleDesc(String tableName){
+        if(tableName == null)
+            return this;
+        Iterator<TDItem> tdItems = this.iterator();
+        Type[] typeAr = new Type[this.numFields()];
+        String[] fieldNameAr= new String[this.numFields()];
+        int i = 0;
+        while(tdItems.hasNext()){
+            TDItem tdItem = tdItems.next();
+            typeAr[i] = tdItem.fieldType;
+            fieldNameAr[i] = tableName + "." + tdItem.fieldName;
+            i++;
+        }
+        return new TupleDesc(typeAr, fieldNameAr);
     }
 
     /**

@@ -82,6 +82,7 @@ public class HeapFile implements DbFile {
             RandomAccessFile raf = new RandomAccessFile(file, "r");
             raf.seek(offset);
             raf.read(data);
+            raf.close();
             return new HeapPage((HeapPageId) pid, data);
         }catch(FileNotFoundException fnfe){
             fnfe.printStackTrace();
@@ -105,6 +106,7 @@ public class HeapFile implements DbFile {
             RandomAccessFile raf = new RandomAccessFile(file, "rw");
             raf.seek(offset);
             raf.write(data);
+            raf.close();
         }catch(IOException ioe){
             ioe.printStackTrace();
         }

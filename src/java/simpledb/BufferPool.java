@@ -61,10 +61,6 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // Check if cache size is greeater than numPages
-        if(pages.size() >= numPages){
-            this.evictPage();
-        }
         // If page already in buffer
         if(pages.containsKey(pid)){
             // Check if transaction can acquire lock
@@ -77,7 +73,11 @@ public class BufferPool {
             // Return the page
             return pages.get(pid);
         }
+        
         // Page not in Buffer
+        // Check if cache size is greeater than numPages
+        if(pages.size() >= numPages)
+            this.evictPage();
         // Add page to Buffer
         DbFile dbFile = Database.getCatalog().getDbFile(pid.getTableId());
         pages.set(pid, dbFile.readPage(pid));

@@ -343,7 +343,7 @@ public class HeapPage implements Page {
         // Set value back
         header[ i / 8 ] = (byte) bits;
     }
-
+    
     /**
      * @author hrily
      * @return an iterator over all tuples on this page 

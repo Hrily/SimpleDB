@@ -2,6 +2,8 @@ package simpledb;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -155,6 +157,16 @@ public class Tuple implements Serializable {
     @Override
     public int hashCode() {
         return fieldValues.hashCode();
+    }
+    
+    public static List<Tuple> sortedList(DbIterator iterator, int field)
+        throws DbException, TransactionAbortedException{
+        List<Tuple> list = new ArrayList<Tuple>();
+        iterator.rewind();
+        while(iterator.hasNext())
+            list.add(iterator.next());
+        Collections.sort(list, new TupleComparator(field, true));
+        return list;
     }
     
 }

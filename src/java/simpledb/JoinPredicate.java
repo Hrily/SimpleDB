@@ -1,6 +1,9 @@
 package simpledb;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * JoinPredicate compares fields of two tuples using a predicate. JoinPredicate
@@ -71,5 +74,62 @@ public class JoinPredicate implements Serializable {
      */
     public Predicate.Op getOperator() {
         return op;
+    }
+
+    public List<Tuple> applyAll(DbIterator iterator1, DbIterator iterator2) 
+            throws DbException, TransactionAbortedException{
+        iterator1.open();
+        iterator2.open();
+        List<Tuple> tupleList = new ArrayList<Tuple>();
+        List<Tuple> list2 = Tuple.sortedList(iterator2, this.getField2());
+        while(iterator1.hasNext()){
+            List<Tuple> list = this.applyOne(iterator1.next(), list2);
+            if(list != null)
+                tupleList.addAll(list);
+        }
+        iterator1.close();
+        iterator2.close();
+        return tupleList;
+    }
+    
+    private List<Tuple> applyOne(Tuple tuple, List<Tuple> tuples){
+        if(tuples.isEmpty()) 
+            return null;
+        boolean found = true;
+        List<Tuple> list = new ArrayList<Tuple>();
+        Tuple searchTuple = new Tuple(tuples.get(0).getTupleDesc());
+        searchTuple.setField(field2, tuple.getField(field1));
+        int index = Collections.binarySearch(tuples, searchTuple, new TupleComparator(field2, true));
+        if(index < 0){
+            index = (-index) + 1;
+            found = false;
+        }
+        int startIndex = 0;
+        JoinPredicate eqPredicate = new JoinPredicate(field1, Predicate.Op.EQUALS, field2);
+        switch(op){
+            case EQUALS:
+            case LESS_THAN_OR_EQ:
+                    while(found && index >= 0
+                            && eqPredicate.filter(tuple, tuples.get(index)))
+                        index--;
+                    startIndex = index + 1;
+                    break;
+            case LESS_THAN:
+                    while(found && index < tuples.size() 
+                            && eqPredicate.filter(tuple, tuples.get(index)))
+                        index++;
+                    startIndex = index;
+                    break;
+        }
+        int i = startIndex;
+        while(  i < tuples.size() 
+                && ( this.filter(tuple, tuples.get(i))
+                     || op.equals(Predicate.Op.NOT_EQUALS)) ){
+            if(this.filter(tuple, tuples.get(i))){
+                list.add(Tuple.merge(tuple, tuples.get(i)));
+            }
+            i++;
+        }
+        return list;
     }
 }

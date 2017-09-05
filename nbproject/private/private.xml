@@ -3,7 +3,16 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/BufferPool.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/JoinPredicate.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Join.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/TupleDesc.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/OrderBy.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/StringField.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Tuple.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/test/simpledb/JoinTest.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/Parser.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/SeqScan.java</file>
+            <file>file:/home/hrishi/git/SimpleDB/src/java/simpledb/LogicalPlan.java</file>
         </group>
     </open-files>
 </project-private>
