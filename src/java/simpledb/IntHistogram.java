@@ -1,8 +1,18 @@
 package simpledb;
 
-/** A class to represent a fixed-width histogram over a single integer-based field.
+import java.util.Arrays;
+
+/** 
+ * A class to represent a fixed-width histogram over a single integer-based field.
  */
 public class IntHistogram {
+    
+    private int nBuckets;
+    private int nBucketSize;
+    private int min, max;
+    private int[] hist, sum;
+    private boolean isSumComputed;
+    private int nTups;
 
     /**
      * Create a new IntHistogram.
@@ -21,7 +31,14 @@ public class IntHistogram {
      * @param max The maximum integer value that will ever be passed to this class for histogramming
      */
     public IntHistogram(int buckets, int min, int max) {
-    	// some code goes here
+    	this.nBuckets = buckets;
+        this.min = min;
+        this.max = max;
+        this.nBucketSize = (int) Math.floor( (double) (max-min+1) / buckets );
+        if(this.nBucketSize == 0) this.nBucketSize = 1;
+        this.hist = new int[this.nBuckets];
+        this.sum  = new int[this.nBuckets + 1];
+        this.nTups = 0;
     }
 
     /**
@@ -29,7 +46,26 @@ public class IntHistogram {
      * @param v Value to add to the histogram
      */
     public void addValue(int v) {
-    	// some code goes here
+        int offset = (v == max) 
+                ? ( nBuckets - 1 ) 
+                : ( (v - min) / nBucketSize );
+        hist[offset]++;
+        nTups++;
+    }
+    
+    /**
+     * Returns Sum( hist[i..j] )
+     * @param i
+     * @param j
+     * @return The sum hist[i..j]
+     */
+    private int getSum(int i, int j){
+        if(isSumComputed)
+            return sum[j+1] - sum[i];
+        for(int _i = 1; _i <= nBuckets; _i++)
+            sum[_i] = hist[_i-1] + sum[_i-1];
+        isSumComputed = true;
+        return sum[j+1] - sum[i];
     }
 
     /**
@@ -43,9 +79,46 @@ public class IntHistogram {
      * @return Predicted selectivity of this particular operator and value
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
-
-    	// some code goes here
-        return -1.0;
+        double selectivity = 0;
+        int offset = (v == max) 
+                ? ( nBuckets - 1 ) 
+                : ( (v - min) / nBucketSize );
+        if(v < min || v > max) offset = -1;
+        switch(op){
+            case EQUALS:
+                if(offset != -1)
+                    selectivity = ((double) hist[offset] / nBucketSize) / nTups;
+                break;
+            case NOT_EQUALS:
+                if(offset != -1)
+                    selectivity = 1 - ((double) hist[offset] / nBucketSize) / nTups;
+                else 
+                    selectivity = 1;
+                break;
+            case GREATER_THAN:
+            case GREATER_THAN_OR_EQ:
+                if(offset != -1){
+                    int b_right = (offset + 1) * nBucketSize + min;
+                    double b_f = (double) hist[offset] / nBucketSize;
+                    double b_part = (double) (b_right - v) / nBucketSize;
+                    selectivity = b_f *  b_part;
+                    selectivity += (double) getSum(offset + 1, nBuckets - 1) / nTups;
+                }else
+                    selectivity = (v < min) ? 1.0 : 0.0;
+                break;
+            case LESS_THAN:
+            case LESS_THAN_OR_EQ:
+                if(offset != -1){
+                    int b_left = offset * nBucketSize + min;
+                    double b_f = (double) hist[offset] / nBucketSize;
+                    double b_part = (double) (v - b_left) / nBucketSize;
+                    selectivity = b_f * b_part;
+                    selectivity += (double) getSum(0, offset) / nTups;
+                }else 
+                    selectivity = (v > max) ? 1.0 : 0.0;
+                break;
+        }
+        return selectivity;
     }
     
     /**
@@ -65,9 +138,20 @@ public class IntHistogram {
     /**
      * @return A string describing this histogram, for debugging purposes
      */
+    @Override
     public String toString() {
-
-        // some code goes here
-        return null;
+         StringBuilder sb = new StringBuilder();
+         sb.append("min : ");
+         sb.append(min);
+         sb.append("\tmax : ");
+         sb.append(max);
+         sb.append("\nbuckets : ");
+         sb.append(nBuckets);
+         sb.append("\tbucketSize : ");
+         sb.append(nBucketSize);
+         sb.append("\nhist : ");
+         sb.append(Arrays.toString(hist));
+         sb.append("\n");
+         return sb.toString();
     }
 }
