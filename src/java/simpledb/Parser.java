@@ -276,6 +276,7 @@ public class Parser {
     public Query handleQueryStatement(ZQuery s, TransactionId tId)
             throws TransactionAbortedException, DbException, IOException,
             simpledb.ParsingException, Zql.ParseException {
+        // and run it
         Query query = new Query(tId);
 
         LogicalPlan lp = parseQueryLogicalPlan(tId, s);
@@ -555,7 +556,6 @@ public class Parser {
                         throw new ParsingException((Exception) a);
                     if (a instanceof Zql.TokenMgrError)
                         throw (Zql.TokenMgrError) a;
-                    a.printStackTrace();
                     throw new DbException(a.getMessage());
                 } finally {
                     if (!inUserTrans)
