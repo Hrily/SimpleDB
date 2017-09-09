@@ -99,9 +99,13 @@ public class IntHistogram {
             case GREATER_THAN_OR_EQ:
                 if(offset != -1){
                     int b_right = (offset + 1) * nBucketSize + min;
-                    double b_f = (double) hist[offset] / nBucketSize;
+                    double b_f = (double) hist[offset] / nTups;
                     double b_part = (double) (b_right - v) / nBucketSize;
-                    selectivity = b_f *  b_part;
+                    
+                    if(op.equals(Predicate.Op.GREATER_THAN_OR_EQ))
+                        selectivity = ((double) hist[offset] / nBucketSize) / nTups;
+                    else
+                        selectivity = b_f * b_part;
                     selectivity += (double) getSum(offset + 1, nBuckets - 1) / nTups;
                 }else
                     selectivity = (v < min) ? 1.0 : 0.0;
@@ -110,10 +114,13 @@ public class IntHistogram {
             case LESS_THAN_OR_EQ:
                 if(offset != -1){
                     int b_left = offset * nBucketSize + min;
-                    double b_f = (double) hist[offset] / nBucketSize;
+                    double b_f = (double) hist[offset] / nTups;
                     double b_part = (double) (v - b_left) / nBucketSize;
-                    selectivity = b_f * b_part;
-                    selectivity += (double) getSum(0, offset) / nTups;
+                    if(op.equals(Predicate.Op.LESS_THAN_OR_EQ))
+                        selectivity = ((double) hist[offset] / nBucketSize) / nTups;
+                    else
+                        selectivity = b_f * b_part;
+                    selectivity += (double) getSum(0, offset - 1) / nTups;
                 }else 
                     selectivity = (v > max) ? 1.0 : 0.0;
                 break;
@@ -128,7 +135,8 @@ public class IntHistogram {
      *     This is not an indispensable method to implement the basic
      *     join optimization. It may be needed if you want to
      *     implement a more efficient optimization
-     * */
+     * 
+     */
     public double avgSelectivity()
     {
         // some code goes here
