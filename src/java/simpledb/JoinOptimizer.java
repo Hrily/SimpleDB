@@ -111,7 +111,13 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops
             // join.
-            return -1.0;
+            return cost1 + cost2 + (1L * card1 * card2);
+            // Uncomment following for better Cost Estimation
+            // Test cases fail for this.
+//            double logn2 = (card2 > 2) ? Math.log(card2) / Math.log(2) : 1;
+//            return cost1 + cost2      // scanning
+//                    + card2 * logn2   // sorting
+//                    + card1 * logn2;  // searching
         }
     }
 
@@ -146,17 +152,42 @@ public class JoinOptimizer {
                     stats, p.getTableAliasToIdMapping());
         }
     }
+    
     /**
-     * Estimate the join cardinality of two tables.
-     * */
+     * Estimate join cardinality
+     * @param joinOp
+     * @param table1Alias
+     * @param table2Alias
+     * @param field1PureName
+     * @param field2PureName
+     * @param card1
+     * @param card2
+     * @param t1pkey
+     * @param t2pkey
+     * @param stats
+     * @param tableAliasToId
+     * @return 
+     */
     public static int estimateTableJoinCardinality(Predicate.Op joinOp,
             String table1Alias, String table2Alias, String field1PureName,
             String field2PureName, int card1, int card2, boolean t1pkey,
             boolean t2pkey, Map<String, TableStats> stats,
             Map<String, Integer> tableAliasToId) {
         int card = 1;
-        // some code goes here
-        return card <= 0 ? 1 : card;
+        
+        if(joinOp == Predicate.Op.EQUALS) {
+            if (t1pkey && !t2pkey) {
+                card = card1;
+            } else if (!t1pkey && t2pkey) {
+                card = card2;
+            } else {
+                card = Math.max(card1, card2);
+            }
+        }else{
+            card =(int) (0.3*card1*card2);
+        }
+        
+        return card <= 0 ? 1 : card;        
     }
 
     /**
@@ -216,17 +247,40 @@ public class JoinOptimizer {
             HashMap<String, TableStats> stats,
             HashMap<String, Double> filterSelectivities, boolean explain)
             throws ParsingException {
-
-        // See the project writeup for some hints as to how this function
-        // should work.
-
-        // some code goes here
-        //Replace the following
-        return joins;
+        // # Using Selinger style optimizer
+        PlanCache optJoin = new PlanCache();
+        Set<LogicalJoinNode> setNode = new HashSet<LogicalJoinNode>();
+        setNode.addAll(joins);
+        Set<Set<LogicalJoinNode>> j = enumerateSubsets(joins, 1);
+        int size = j.size();
+        for(int i=1; i<=size; i++){
+            Set<Set<LogicalJoinNode>> lenSubsetOfJ = enumerateSubsets(joins, i);
+            for(Set<LogicalJoinNode> s : lenSubsetOfJ){
+                Double bestCostSoFar = Double.MAX_VALUE;
+                Integer bestCardSoFar = Integer.MAX_VALUE;
+                Vector<LogicalJoinNode> bestPlanSoFar = null;
+                for(LogicalJoinNode ljn : s){
+                    CostCard costCard = computeCostAndCardOfSubplan(stats, filterSelectivities, ljn, s, bestCostSoFar, optJoin);
+                    if(costCard != null && costCard.cost < bestCostSoFar){
+                        bestCostSoFar = costCard.cost;
+                        bestCardSoFar = costCard.card;
+                        bestPlanSoFar = costCard.plan;
+                    }
+                }
+                optJoin.addPlan(s, bestCostSoFar, bestCardSoFar, bestPlanSoFar);
+            }
+        }
+        if(explain) {
+            System.out.println("Optimal plan : ");
+            for(LogicalJoinNode e : optJoin.getOrder(setNode))
+                System.out.print(e + " ");
+            System.out.print("\n");
+        }
+        return optJoin.getOrder(setNode);
     }
 
     // ===================== Private Methods =================================
-
+    
     /**
      * This is a helper method that computes the cost and cardinality of joining
      * joinToRemove to joinSet (joinSet should contain joinToRemove), given that

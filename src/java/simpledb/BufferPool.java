@@ -62,13 +62,14 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // If page already in buffer
+        // TODO: Implement locking mechanism
         if(pages.containsKey(pid)){
             // Check if transaction can acquire lock
-            // TODO: Implement locking mechanism
             // Add transaction id if possible
             pagePermissions.put(pid, perm);
-            if(pageTransactions.get(tid) != null && 
-                    !pageTransactions.get(tid).contains(pid))
+            if(pageTransactions.get(tid) == null)
+                pageTransactions.put(tid, new ArrayList<PageId>());
+            if(!pageTransactions.get(tid).contains(pid))
                 pageTransactions.get(tid).add(pid);
             // Return the page
             return pages.get(pid);

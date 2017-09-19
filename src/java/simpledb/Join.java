@@ -47,7 +47,7 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField1Name() {
-        TupleDesc td = child2.getTupleDesc();
+        TupleDesc td = child1.getTupleDesc();
         return td.getFieldName(predicate.getField1());
     }
 
@@ -59,7 +59,7 @@ public class Join extends Operator {
      */
     public String getJoinField2Name() {
         TupleDesc td = child2.getTupleDesc();
-        return td.getFieldName(predicate.getField1());
+        return td.getFieldName(predicate.getField2());
     }
 
     /**

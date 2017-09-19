@@ -34,7 +34,7 @@ public class IntHistogram {
     	this.nBuckets = buckets;
         this.min = min;
         this.max = max;
-        this.nBucketSize = (int) Math.floor( (double) (max-min+1) / buckets );
+        this.nBucketSize = (int) Math.ceil( (double) (1.0*max-min+1) / buckets );
         if(this.nBucketSize == 0) this.nBucketSize = 1;
         this.hist = new int[this.nBuckets];
         this.sum  = new int[this.nBuckets + 1];

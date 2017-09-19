@@ -192,9 +192,9 @@ public class TableStats {
      *         predicate
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
-        int nbins = Math.min( NUM_HIST_BINS, 
-            ((IntField) maxTuple.getField(field)).getValue() );
         if(file.getTupleDesc().getFieldType(field).equals(Type.INT_TYPE)){
+            int nbins = Math.min( NUM_HIST_BINS, 
+                ((IntField) maxTuple.getField(field)).getValue() );
             IntHistogram hist = new IntHistogram(
                     nbins,  
                     ((IntField) minTuple.getField(field)).getValue(), 
@@ -237,6 +237,14 @@ public class TableStats {
      */
     public int totalTuples() {
         return numTuples;
+    }
+    
+    public Tuple getMinTuple() {
+        return minTuple;
+    }
+    
+    public Tuple getMaxTuple() {
+        return maxTuple;
     }
 
 }

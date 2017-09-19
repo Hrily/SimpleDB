@@ -344,62 +344,66 @@ public class LogicalPlan {
             //s.addSelectivityFactor(estimateFilterSelectivity(lf,statsMap));
         }
         
-        JoinOptimizer jo = new JoinOptimizer(this,joins);
-
-        joins = jo.orderJoins(statsMap,filterSelectivities,explain);
-
-        Iterator<LogicalJoinNode> joinIt = joins.iterator();
-        while (joinIt.hasNext()) {
-            LogicalJoinNode lj = joinIt.next();
-            DbIterator plan1;
-            DbIterator plan2;
-            boolean isSubqueryJoin = lj instanceof LogicalSubplanJoinNode;
-            String t1name, t2name;
-
-            if (equivMap.get(lj.t1Alias)!=null)
-                t1name = equivMap.get(lj.t1Alias);
-            else
-                t1name = lj.t1Alias;
-
-            if (equivMap.get(lj.t2Alias)!=null)
-                t2name = equivMap.get(lj.t2Alias);
-            else
-                t2name = lj.t2Alias;
-
-            plan1 = subplanMap.get(t1name);
-
-            if (isSubqueryJoin) {
-                plan2 = ((LogicalSubplanJoinNode)lj).subPlan;
-                if (plan2 == null) 
-                    throw new ParsingException("Invalid subquery.");
-            } else { 
-                plan2 = subplanMap.get(t2name);
-            }
+        if(joins != null && joins.size() > 0) {
             
-            if (plan1 == null)
-                throw new ParsingException("Unknown table in WHERE clause " + lj.t1Alias);
-            if (plan2 == null)
-                throw new ParsingException("Unknown table in WHERE clause " + lj.t2Alias);
-            
-            DbIterator j;
-            j = jo.instantiateJoin(lj,plan1,plan2);
-            subplanMap.put(t1name, j);
+            JoinOptimizer jo = new JoinOptimizer(this,joins);
 
-            if (!isSubqueryJoin) {
-                subplanMap.remove(t2name);
-                equivMap.put(t2name,t1name);  //keep track of the fact that this new node contains both tables
-                    //make sure anything that was equiv to lj.t2 (which we are just removed) is
-                    // marked as equiv to lj.t1 (which we are replacing lj.t2 with.)
-                    for (java.util.Map.Entry<String, String> s: equivMap.entrySet()) {
-                        String val = s.getValue();
-                        if (val.equals(t2name)) {
-                            s.setValue(t1name);
+            joins = jo.orderJoins(statsMap,filterSelectivities,explain);
+
+            Iterator<LogicalJoinNode> joinIt = joins.iterator();
+            while (joinIt.hasNext()) {
+                LogicalJoinNode lj = joinIt.next();
+                DbIterator plan1;
+                DbIterator plan2;
+                boolean isSubqueryJoin = lj instanceof LogicalSubplanJoinNode;
+                String t1name, t2name;
+
+                if (equivMap.get(lj.t1Alias)!=null)
+                    t1name = equivMap.get(lj.t1Alias);
+                else
+                    t1name = lj.t1Alias;
+
+                if (equivMap.get(lj.t2Alias)!=null)
+                    t2name = equivMap.get(lj.t2Alias);
+                else
+                    t2name = lj.t2Alias;
+
+                plan1 = subplanMap.get(t1name);
+
+                if (isSubqueryJoin) {
+                    plan2 = ((LogicalSubplanJoinNode)lj).subPlan;
+                    if (plan2 == null) 
+                        throw new ParsingException("Invalid subquery.");
+                } else { 
+                    plan2 = subplanMap.get(t2name);
+                }
+
+                if (plan1 == null)
+                    throw new ParsingException("Unknown table in WHERE clause " + lj.t1Alias);
+                if (plan2 == null)
+                    throw new ParsingException("Unknown table in WHERE clause " + lj.t2Alias);
+
+                DbIterator j;
+                j = jo.instantiateJoin(lj,plan1,plan2);
+                subplanMap.put(t1name, j);
+
+                if (!isSubqueryJoin) {
+                    subplanMap.remove(t2name);
+                    equivMap.put(t2name,t1name);  //keep track of the fact that this new node contains both tables
+                        //make sure anything that was equiv to lj.t2 (which we are just removed) is
+                        // marked as equiv to lj.t1 (which we are replacing lj.t2 with.)
+                        for (java.util.Map.Entry<String, String> s: equivMap.entrySet()) {
+                            String val = s.getValue();
+                            if (val.equals(t2name)) {
+                                s.setValue(t1name);
+                            }
                         }
-                    }
-                    
-                // subplanMap.put(lj.t2, j);
+
+                    // subplanMap.put(lj.t2, j);
+                }
+
             }
-            
+
         }
 
         if (subplanMap.size() > 1) {
