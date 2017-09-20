@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package simpledb;
 
 import java.util.HashMap;
@@ -69,7 +64,8 @@ public class LockManager {
     public synchronized boolean grantLock(TransactionId tid, PageId pid, 
             Permissions pm){
         // If Page requested is new and not in lock
-        if(!readLocks.containsKey(pid) && !writeLock.containsKey(pid)){
+        if( ( !readLocks.containsKey(pid) || readLocks.get(pid).isEmpty() ) && 
+                !writeLock.containsKey(pid)){
             // We can grant any kind of lock
             addLock(tid, pid, pm);
             return true;
@@ -79,7 +75,7 @@ public class LockManager {
         if(pm.equals(Permissions.READ_ONLY)){
             // If page permission is read write 
             // then we cannot give the lock before release of write lock.
-            if(writeLock.containsKey(pid))
+            if(writeLock.containsKey(pid) && writeLock.get(pid) != tid)
                 return false;
             // Else the page permission is read 
             // we can give the lock.
@@ -94,7 +90,7 @@ public class LockManager {
         // requested page
         if(readLocks.containsKey(pid) && 
                 readLocks.get(pid).contains(tid) &&
-                readLocks.size() == 1){
+                readLocks.get(pid).size() == 1){
             addLock(tid, pid, pm);
             return true;
         }
@@ -120,6 +116,15 @@ public class LockManager {
             sharedPages.get(tid).remove(pid);
         if(exclusivePages.containsKey(tid))
             exclusivePages.get(tid).remove(pid);
+    }
+    
+    /**
+     * Releases Lock related to a page
+     * @param pid PageId
+     */
+    public synchronized void removePage(PageId pid){
+        readLocks.remove(pid);
+        writeLock.remove(pid);
     }
     
     /**

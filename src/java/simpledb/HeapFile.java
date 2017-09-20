@@ -138,11 +138,11 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         ArrayList<Page> pages = new ArrayList<Page>();
+        BufferPool buffer = Database.getBufferPool();
         for(int i = 0; i < numPages(); i++){
             PageId pid = new HeapPageId(this.getId(), i);
             HeapPage page 
-                = (HeapPage) Database
-                    .getBufferPool()
+                = (HeapPage) buffer
                     .getPage(tid, pid, Permissions.READ_ONLY);
             if(page.getNumEmptySlots() > 0){
                 page = (HeapPage) Database
@@ -150,8 +150,10 @@ public class HeapFile implements DbFile {
                     .getPage(tid, pid, Permissions.READ_WRITE);
                 page.insertTuple(t);
                 pages.add(page);
+                buffer.releasePage(tid, pid);
                 break;
             }
+            buffer.releasePage(tid, pid);
         }
         if(pages.isEmpty()){
             HeapPageId pid = new HeapPageId(this.getId(), this.numPages());

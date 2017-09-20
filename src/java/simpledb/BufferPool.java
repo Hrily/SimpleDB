@@ -4,6 +4,8 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -23,11 +25,13 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
     
+    private static final int BLOCK_DELAY = 10;
+    
     private int numPages;
     
     private LRUCache<PageId, Page> pages;
-    private HashMap<PageId, Permissions> pagePermissions;
     private HashMap<TransactionId, ArrayList<PageId>> pageTransactions;
+    private volatile LockManager lockManager;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -38,7 +42,7 @@ public class BufferPool {
         this.numPages = numPages;
         pages = new LRUCache<PageId, Page>(numPages);
         pageTransactions = new HashMap<TransactionId, ArrayList<PageId>>();
-        pagePermissions = new HashMap<PageId, Permissions>();
+        lockManager = new LockManager();
     }
 
     /**
@@ -61,13 +65,26 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
+        // Grant lock on page
+        boolean isGranted = lockManager.grantLock(tid, pid, perm);
+        int i = 1;
+        while(!isGranted){
+            if(i > 4)
+                throw new TransactionAbortedException();
+            try {
+                // Block thread
+                Thread.sleep((i++) * BLOCK_DELAY);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(BufferPool.class.getName()).log(Level.SEVERE, null, ex);
+                throw new TransactionAbortedException();
+            }
+            isGranted = lockManager.grantLock(tid, pid, perm);
+        }
+        
         // If page already in buffer
-        // TODO: Implement locking mechanism
         if(pages.containsKey(pid)){
             // Check if transaction can acquire lock
-            // Add transaction id if possible
-            pagePermissions.put(pid, perm);
-            if(pageTransactions.get(tid) == null)
+            if(!pageTransactions.containsKey(tid))  
                 pageTransactions.put(tid, new ArrayList<PageId>());
             if(!pageTransactions.get(tid).contains(pid))
                 pageTransactions.get(tid).add(pid);
@@ -86,8 +103,6 @@ public class BufferPool {
         if(!pageTransactions.containsKey(tid))
             pageTransactions.put(tid, new ArrayList<PageId>());
         pageTransactions.get(tid).add(pid);
-        // Update page permissions
-        pagePermissions.put(pid, perm);
         // return page
         return pages.get(pid);
     }
@@ -102,8 +117,8 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public void releasePage(TransactionId tid, PageId pid) {
-        // some code goes here
-        // not necessary for proj1
+        lockManager.releaseLock(tid, pid);
+        pageTransactions.get(tid).remove(pid);
     }
 
     /**
@@ -113,8 +128,8 @@ public class BufferPool {
      * @throws java.io.IOException
      */
     public void transactionComplete(TransactionId tid) throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        lockManager.releaseAllPages(tid);
+        pageTransactions.remove(tid);
     }
 
     /** 
@@ -124,9 +139,7 @@ public class BufferPool {
      * @return 
      */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        // some code goes here
-        // not necessary for proj1
-        return false;
+        return lockManager.holdsLock(tid, p);
     }
 
     /**
@@ -139,8 +152,13 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        if(commit && pageTransactions.containsKey(tid)){
+            for(PageId pid: pageTransactions.get(tid))
+                if(pages.get(pid).isDirty() != null)
+                    flushPage(pid);
+        }
+        lockManager.releaseAllPages(tid);
+        pageTransactions.remove(tid);
     }
 
     /**
@@ -169,7 +187,6 @@ public class BufferPool {
             pages.set(page.getId(), page);
             if(!pageTransactions.get(tid).contains(page.getId()))
                 pageTransactions.get(tid).add(page.getId());
-            pagePermissions.put(page.getId(), Permissions.READ_ONLY);
         }
     }
 
@@ -197,7 +214,6 @@ public class BufferPool {
         pages.set(page.getId(), page);
         if(!pageTransactions.get(tid).contains(page.getId()))
             pageTransactions.get(tid).add(page.getId());
-        pagePermissions.put(page.getId(), Permissions.READ_ONLY);
     }
 
     /**
@@ -207,13 +223,13 @@ public class BufferPool {
      * @throws java.io.IOException
      */
     public synchronized void flushAllPages() throws IOException {
-        Iterator<PageId> pageIds = this.pages.iterator();
-        while(pageIds.hasNext()){
-            PageId pageId = pageIds.next();
-            Page page = pages.get(pageId);
-            if(page.isDirty() != null)
-                // Need to flush
-                this.flushPage(pageId);
+        for(TransactionId tid: pageTransactions.keySet()){
+            for(PageId pid: pageTransactions.get(tid)){
+                Page page = pages.get(pid);
+                if(page.isDirty() != null)
+                    // Need to flush
+                    this.flushPage(page.getId());
+            }
         }
     }
 
@@ -226,16 +242,16 @@ public class BufferPool {
      */
     public synchronized void discardPage(PageId pid) {
         this.pages.remove(pid);
-        this.pagePermissions.remove(pid);
     }
 
     /**
      * Flushes a certain page to disk
      * @param pid an ID indicating the page to flush
      */
-    private synchronized  void flushPage(PageId pid) throws IOException {
+    private synchronized void flushPage(PageId pid) throws IOException {
         DbFile dbFile = Database.getCatalog().getDbFile(pid.getTableId());
         dbFile.writePage(pages.get(pid));
+        pages.get(pid).markDirty(false, null);
     }
 
     /** 
@@ -245,20 +261,23 @@ public class BufferPool {
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
         ArrayList<PageId> pageIds = pageTransactions.get(tid);
-        for(PageId pid: pageIds)
+        for(PageId pid: pageIds){
             if(pages.containsKey(pid))
                 flushPage(pid);
+            lockManager.releaseLock(tid, pid);
+        }
     }
 
     /**
      * Discards a page from the buffer pool.
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
-    private synchronized  void evictPage() throws DbException {
+    private synchronized void evictPage() throws DbException {
         try{
             Page page = pages.evict();
             if(page.isDirty() != null)
                 flushPage(page.getId());
+            lockManager.removePage(page.getId());
         }catch (IOException ioe){
             throw new DbException("IOException: " + ioe.getMessage());
         }
