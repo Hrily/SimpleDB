@@ -42,10 +42,10 @@ public class LRUCache<K, V> {
      * @param key
      * @return The Element
      */
-    public V get(K key) {
+    public synchronized V get(K key) {
         V value = this.map.get(key);
         if (value != null) {
-            this.set(key, value);
+            this.put(key, value);
         }
         return value;
     }
@@ -54,7 +54,7 @@ public class LRUCache<K, V> {
      * Evicts the least recently used element
      * @return The evicted element
      */
-    public V evict(){
+    public synchronized V evict(){
         Iterator<K> it = this.map.keySet().iterator();
         K k = it.next();
         V v = map.get(k);
@@ -67,7 +67,7 @@ public class LRUCache<K, V> {
      * @param key Key of the element
      * @param value The element
      */
-    public void set(K key, V value) {
+    public synchronized void put(K key, V value) {
         if (this.map.containsKey(key)) {
             this.map.remove(key);
         } else if (this.map.size() == this.capacity) {
@@ -86,15 +86,19 @@ public class LRUCache<K, V> {
     /**
      * @return The iterator to key set of this cache
      */
-    public Iterator<K> iterator(){
+    public Iterator<K> keySet(){
         return this.map.keySet().iterator();
+    }
+    
+    public Iterator<V> values(){
+        return this.map.values().iterator();
     }
     
     /**
      * Removes element with given key
      * @param key The key of element to be removed
      */
-    public void remove(K key){
+    public synchronized void remove(K key){
         this.map.remove(key);
     }
     

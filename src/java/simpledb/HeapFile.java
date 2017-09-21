@@ -150,10 +150,8 @@ public class HeapFile implements DbFile {
                     .getPage(tid, pid, Permissions.READ_WRITE);
                 page.insertTuple(t);
                 pages.add(page);
-                buffer.releasePage(tid, pid);
                 break;
             }
-            buffer.releasePage(tid, pid);
         }
         if(pages.isEmpty()){
             HeapPageId pid = new HeapPageId(this.getId(), this.numPages());
@@ -225,7 +223,8 @@ public class HeapFile implements DbFile {
          */
         private Iterator<Tuple> getTuples(int pageNumber) throws  DbException, TransactionAbortedException {
             pid = new HeapPageId(tableId, pageNumber);
-            HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY);
+            HeapPage heapPage = (HeapPage) Database.getBufferPool()
+                    .getPage(tid, pid, Permissions.READ_ONLY);
             return heapPage.iterator();
         }
 
@@ -237,7 +236,11 @@ public class HeapFile implements DbFile {
          */
         public void open() throws DbException, TransactionAbortedException {
             pageCounter = 0;
+            System.out.println(tid + " opening iterator " + System.currentTimeMillis());
+            System.out.flush();
             tuples = getTuples(pageCounter);
+            System.out.println(tid + " iterator opened " + System.currentTimeMillis() + " " + tuples);
+            System.out.flush();
         }
 
         /**
@@ -260,8 +263,6 @@ public class HeapFile implements DbFile {
             // Else check if there is next page
             // If Page is exhausted get new page tuples
             while(pageCounter + 1 < numPages && !tuples.hasNext()){
-                // Release the current page
-                Database.getBufferPool().releasePage(tid, pid);
                 // Get tuples of next page
                 pageCounter++;
                 tuples = getTuples(pageCounter);
@@ -299,8 +300,6 @@ public class HeapFile implements DbFile {
          * Close the iterator
          */
         public void close() {
-            // Release the  current page
-            Database.getBufferPool().releasePage(tid, pid);
             tuples = null;
             pid = null;
         }
