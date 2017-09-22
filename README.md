@@ -7,8 +7,7 @@ The project is course project for **CS186** course of **Berkeley University**. T
     
 ### Documentation
 
-You can find entire JavaDoc at [hrily.github.io/SimpleDB](hrily.github.io/SimpleDB)
-
+You can find entire JavaDoc at [https://hrily.github.io/SimpleDB](https://hrily.github.io/SimpleDB) 
 ### Features
 + Modelling of DB Tables in form of *Tuples* and *Fields*
 + Modelling of DB *Catalog*
