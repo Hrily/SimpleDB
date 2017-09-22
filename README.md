@@ -4,6 +4,10 @@
 
 The project is course project for **CS186** course of **Berkeley University**. The full details can be obtained at the project site :
     https://sites.google.com/site/cs186fall2013/homeworks/project-1
+    
+### Documentation
+
+You can find entire JavaDoc at [hrily.github.io/SimpleDB](hrily.github.io/SimpleDB)
 
 ### Features
 + Modelling of DB Tables in form of *Tuples* and *Fields*
