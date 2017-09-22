@@ -236,11 +236,7 @@ public class HeapFile implements DbFile {
          */
         public void open() throws DbException, TransactionAbortedException {
             pageCounter = 0;
-            System.out.println(tid + " opening iterator " + System.currentTimeMillis());
-            System.out.flush();
             tuples = getTuples(pageCounter);
-            System.out.println(tid + " iterator opened " + System.currentTimeMillis() + " " + tuples);
-            System.out.flush();
         }
 
         /**

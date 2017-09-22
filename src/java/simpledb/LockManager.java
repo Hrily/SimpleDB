@@ -67,7 +67,6 @@ public class LockManager {
         if( ( !readLocks.containsKey(pid) || readLocks.get(pid).isEmpty() ) && 
                 !writeLock.containsKey(pid)){
             // We can grant any kind of lock
-            System.out.println(tid + " Got new lock");
             addLock(tid, pid, pm);
             return true;
         }
@@ -78,9 +77,6 @@ public class LockManager {
             // then we cannot give the lock before release of write lock.
             if(writeLock.containsKey(pid) && writeLock.get(pid) != tid)
                 return false;
-            System.out.println(tid + " got read lock " + System.currentTimeMillis());
-            System.out.println(writeLock.get(pid));
-            System.out.flush();
             // Else the page permission is read 
             // we can give the lock.
             addLock(tid, pid, pm);
@@ -95,8 +91,6 @@ public class LockManager {
         if(readLocks.containsKey(pid) && 
                 readLocks.get(pid).contains(tid) &&
                 readLocks.get(pid).size() == 1){
-            System.out.println(tid + " got write lock");
-            System.out.println(readLocks.get(pid));
             addLock(tid, pid, pm);
             return true;
         }

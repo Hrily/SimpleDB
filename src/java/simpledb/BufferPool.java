@@ -28,8 +28,10 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
     
-    private static final int BLOCK_DELAY = 50;
-    private static final int MAX_TRIES = 5;
+    private static final int BLOCK_DELAY_SHORT = 10;
+    private static final int BLOCK_DELAY_LONG = 100;
+    private static final int MAX_TRIES_SMALL = 250;
+    private static final int MAX_TRIES_LARGE = 500;
     private static final int RAND_RANGE = 10;
     
     private int numPages;
@@ -53,8 +55,10 @@ public class BufferPool {
                 Iterator<Page> pages = this.values();
                 while(pages.hasNext()){
                     Page page = pages.next();
-                    if(page.isDirty() == null)
+                    if(page.isDirty() == null){
+                        this.remove(page.getId());
                         return page;
+                    }
                 }
                 return null;
             }
@@ -83,17 +87,21 @@ public class BufferPool {
         throws TransactionAbortedException, DbException {
         
         // Grant lock on page
+        int block_delay = BLOCK_DELAY_LONG;
+        int max_tries = MAX_TRIES_SMALL;
+        if(pageTransactions.containsKey(tid)){
+            block_delay = BLOCK_DELAY_SHORT;
+            max_tries = MAX_TRIES_LARGE;
+        }
         boolean isGranted = lockManager.grantLock(tid, pid, perm);
-        int tries = 1;
         Random random = new Random(System.currentTimeMillis());
+        long startTime = System.currentTimeMillis();
         while(!isGranted){
-            if(tries > MAX_TRIES)
+            if(System.currentTimeMillis() - startTime > max_tries)
                 throw new TransactionAbortedException();
             try {
                 // Block thread
-                int rand = random.nextInt(RAND_RANGE)+ 1;
-                Thread.sleep(rand * BLOCK_DELAY + random.nextInt(2 * BLOCK_DELAY));
-                tries++;
+                Thread.sleep(block_delay + random.nextInt(RAND_RANGE));
             } catch (InterruptedException ex) {
                 Logger.getLogger(BufferPool.class.getName()).log(Level.SEVERE, null, ex);
                 throw new TransactionAbortedException();
@@ -169,8 +177,13 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
+        if(!pageTransactions.containsKey(tid)){
+            lockManager.releaseAllPages(tid);
+            return;
+        }
         for(PageId pid: pageTransactions.get(tid)){
-            if(pages.get(pid).isDirty() != null){
+            if(pages.containsKey(pid) && 
+                    pages.get(pid).isDirty() != null){
                 // If Commit then flush
                 if(commit)
                     flushPage(pid);
