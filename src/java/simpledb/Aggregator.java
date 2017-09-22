@@ -69,7 +69,7 @@ public interface Aggregator extends Serializable {
     
     
     /**
-     * TupleMapIterator is class which converts HashMap<Field, Tuple>
+     * TupleMapIterator is class which converts HashMap &lt; Field, Tuple &gt;
      * to a DbIterator.
      * 
      * @author hrily

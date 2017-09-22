@@ -237,7 +237,7 @@ public class JoinOptimizer {
      * @param explain
      *            Indicates whether your code should explain its query plan or
      *            simply execute it
-     * @return A Vector<LogicalJoinNode> that stores joins in the left-deep
+     * @return A Vector &lt; LogicalJoinNode &gt; that stores joins in the left-deep
      *         order in which they should be executed.
      * @throws ParsingException
      *             when stats or filter selectivities is missing a table in the

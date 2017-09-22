@@ -3,7 +3,7 @@ package simpledb;
 import java.util.*;
 
 /**
- * Implements a DbIterator by wrapping an Iterable<Tuple>.
+ * Implements a DbIterator by wrapping an Iterable &lt; Tuple &gt;.
  */
 public class TupleIterator implements DbIterator {
     /**

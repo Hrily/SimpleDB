@@ -21,7 +21,7 @@ public class Aggregate extends Operator {
      * Constructor.
      * 
      * Implementation hint: depending on the type of afield, you will want to
-     * construct an {@link IntAggregator} or {@link StringAggregator} to help
+     * construct an {@link IntegerAggregator} or {@link StringAggregator} to help
      * you with your implementation of readNext().
      * 
      * @author hrily
@@ -103,8 +103,8 @@ public class Aggregate extends Operator {
      * Opens the iterator
      * 
      * @author hrily
-     * @throws NoSuchElementException
-     * @throws DbException
+     * @throws NoSuchElementException When no element is found
+     * @throws DbException 
      * @throws TransactionAbortedException 
      */
     @Override

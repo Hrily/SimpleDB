@@ -14,9 +14,9 @@ public class StringHistogram {
         hist = new IntHistogram(buckets, minVal(), maxVal());
     }
 
-    /** Convert a string to an integer, with the property that 
-        if the return value(s1) < return value(s2), then s1 < s2
-    */
+    /*  Convert a string to an integer, with the property that 
+     * if the return value(s1) < return value(s2), then s1 < s2
+     */
     private int stringToInt(String s) {
         int i ;
         int v = 0;

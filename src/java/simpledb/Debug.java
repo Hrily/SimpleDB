@@ -29,7 +29,7 @@ public class Debug {
 
   private static final int DEFAULT_LEVEL = 0;
 
-  /** Log message if the log level >= level. Uses printf. */
+  /* Log message if the log level >= level. Uses printf. */
   public static void log(int level, String message, Object... args) {
     if (isEnabled(level)) {
       System.out.printf(message, args);

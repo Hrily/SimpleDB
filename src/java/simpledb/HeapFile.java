@@ -186,7 +186,7 @@ public class HeapFile implements DbFile {
     /**
      * Class for iterating over all tuples of this file
      * 
-     * @see simpleddb.DbFileIterator
+     * @see simpledb.DbFileIterator
      * @author hrily
      */
     public class HeapFileIterator implements DbFileIterator {
@@ -217,7 +217,7 @@ public class HeapFile implements DbFile {
          * Gets tuples from file with given page number
          * 
          * @param pageNumber
-         * @return Iterator<Tuples> Iterator for tuples in the page
+         * @return Iterator &lt; Tuples &gt; Iterator for tuples in the page
          * @throws DbException
          * @throws TransactionAbortedException 
          */
