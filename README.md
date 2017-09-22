@@ -24,7 +24,7 @@ You can find entire JavaDoc at [https://hrily.github.io/SimpleDB](https://hrily.
 
 ### TODO List
 - [ ] B+Tree Files
-- [ ] Better Thread Scheduling
+- [x] Better Thread Scheduling
 - [ ] Better Jonn Optimizer Cost computing
 
 The project is done over skeleton provided by the course. Testing is done on JUnit using the tests provided by course itself.

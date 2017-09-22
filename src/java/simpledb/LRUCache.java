@@ -90,6 +90,9 @@ public class LRUCache<K, V> {
         return this.map.keySet().iterator();
     }
     
+    /**
+     * @return The iterator to values of this cache
+     */
     public Iterator<V> values(){
         return this.map.values().iterator();
     }

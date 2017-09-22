@@ -1,7 +1,11 @@
 package simpledb;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -12,16 +16,24 @@ import java.util.Set;
  */
 public class LockManager {
     
+    private static final int BLOCK_DELAY_SHORT = 10;
+    private static final int BLOCK_DELAY_LONG = 100;
+    private static final int MAX_TRIES_SMALL = 250;
+    private static final int MAX_TRIES_LARGE = 500;
+    private static final int RAND_RANGE = 10;
+    
     private HashMap<PageId, Set<TransactionId>> readLocks;
     private HashMap<PageId, TransactionId> writeLock;
     private HashMap<TransactionId, Set<PageId>> sharedPages;
     private HashMap<TransactionId, Set<PageId>> exclusivePages;
+    private HashMap<TransactionId, Thread> transactionThread;
 
     public LockManager() {
         readLocks = new HashMap<PageId, Set<TransactionId>>();
         writeLock = new HashMap<PageId, TransactionId>();
         sharedPages = new HashMap<TransactionId, Set<PageId>>();
         exclusivePages = new HashMap<TransactionId, Set<PageId>>();
+        transactionThread = new HashMap<TransactionId, Thread>();
     }
     
     /**
@@ -54,6 +66,18 @@ public class LockManager {
         exclusivePages.get(tid).add(pid);
     }
     
+    private void abortReadLocks(TransactionId requestingTid, PageId pid) 
+            throws IOException{
+        if(!readLocks.containsKey(pid)) return;
+        List<TransactionId> tids = new ArrayList<TransactionId>();
+        for(TransactionId tid: readLocks.get(pid))
+            tids.add(tid);
+        readLocks.get(pid).clear();
+        for(TransactionId tid: tids)
+            if(!tid.equals(requestingTid))
+                transactionThread.get(tid).interrupt();
+    }
+    
     /**
      * Grants lock to the Transaction.
      * @param tid TransactionId requesting lock.
@@ -61,8 +85,21 @@ public class LockManager {
      * @param pm The type of permission.
      * @return boolean True if lock is successfully granted.
      */
-    public synchronized boolean grantLock(TransactionId tid, PageId pid, 
-            Permissions pm){
+    public synchronized boolean grantLock(TransactionId tid, PageId pid,
+            Permissions pm) {
+        return grantLock(tid, pid, pm, false);
+    }
+    
+    /**
+     * Grants lock to the Transaction.
+     * @param tid TransactionId requesting lock.
+     * @param pid PageId on which the lock is requested.
+     * @param pm The type of permission.
+     * @param force Whether to force give this lock
+     * @return boolean True if lock is successfully granted.
+     */
+    private synchronized boolean grantLock(TransactionId tid, PageId pid, 
+            Permissions pm, boolean force) {
         // If Page requested is new and not in lock
         if( ( !readLocks.containsKey(pid) || readLocks.get(pid).isEmpty() ) && 
                 !writeLock.containsKey(pid)){
@@ -97,11 +134,67 @@ public class LockManager {
         // But if transaction tid has already a write lock
         // then the result is already success
         if(exclusivePages.containsKey(tid) &&
-                exclusivePages.get(tid).contains(pid))
+                exclusivePages.get(tid).contains(pid)){
             return true;
+        }
+        // In case this call is a force call for write lock
+        // Check if there is no write lock
+        if(force && 
+                pm.equals(Permissions.READ_WRITE) &&
+                !writeLock.containsKey(pid)){
+            try{
+                abortReadLocks(tid, pid);
+                addLock(tid, pid, pm);
+                return true;
+            }catch(IOException e){
+                return false;
+            }
+        }
         // In all other cases we fail to grant lock.
         return false;
     }
+    
+    public void requestLock(TransactionId tid, PageId pid, 
+            Permissions perm) throws TransactionAbortedException{
+        int blockDelay = BLOCK_DELAY_LONG;
+        int maxTries = MAX_TRIES_SMALL;
+        // Check if old tid
+        if(sharedPages.containsKey(tid) || 
+                exclusivePages.containsKey(tid)){
+            blockDelay = BLOCK_DELAY_SHORT;
+            maxTries = MAX_TRIES_LARGE;
+        }
+        // Add this thread to map
+        if(!transactionThread.containsKey(tid))
+            transactionThread.put(tid, Thread.currentThread());
+        boolean isGranted = this.grantLock(tid, pid, perm);
+        Random random = new Random(System.currentTimeMillis());
+        long startTime = System.currentTimeMillis();
+        while(!isGranted){
+            if(System.currentTimeMillis() - startTime > maxTries){
+                if(perm.equals(Permissions.READ_ONLY)){
+                    // Remove this thread from map
+                    transactionThread.remove(tid);
+                    throw new TransactionAbortedException();
+                }
+                else{
+                    isGranted = this.grantLock(tid, pid, perm, true);
+                    startTime = System.currentTimeMillis();
+                    continue;
+                }
+            }
+            try {
+                // Block thread
+                Thread.sleep(blockDelay + random.nextInt(RAND_RANGE));
+            } catch (InterruptedException ex) {
+                transactionThread.remove(tid);
+                throw new TransactionAbortedException();
+            }
+            isGranted = this.grantLock(tid, pid, perm);
+        }
+    }
+    
+    
     
     /**
      * Releases locks associated with given transaction and page.

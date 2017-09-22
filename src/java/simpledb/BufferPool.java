@@ -5,10 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -27,12 +24,6 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
-    
-    private static final int BLOCK_DELAY_SHORT = 10;
-    private static final int BLOCK_DELAY_LONG = 100;
-    private static final int MAX_TRIES_SMALL = 250;
-    private static final int MAX_TRIES_LARGE = 500;
-    private static final int RAND_RANGE = 10;
     
     private int numPages;
     
@@ -86,28 +77,9 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         
-        // Grant lock on page
-        int block_delay = BLOCK_DELAY_LONG;
-        int max_tries = MAX_TRIES_SMALL;
-        if(pageTransactions.containsKey(tid)){
-            block_delay = BLOCK_DELAY_SHORT;
-            max_tries = MAX_TRIES_LARGE;
-        }
-        boolean isGranted = lockManager.grantLock(tid, pid, perm);
-        Random random = new Random(System.currentTimeMillis());
-        long startTime = System.currentTimeMillis();
-        while(!isGranted){
-            if(System.currentTimeMillis() - startTime > max_tries)
-                throw new TransactionAbortedException();
-            try {
-                // Block thread
-                Thread.sleep(block_delay + random.nextInt(RAND_RANGE));
-            } catch (InterruptedException ex) {
-                Logger.getLogger(BufferPool.class.getName()).log(Level.SEVERE, null, ex);
-                throw new TransactionAbortedException();
-            }
-            isGranted = lockManager.grantLock(tid, pid, perm);
-        }
+        // Get Lock on the page
+        // Will throw TransactionAbortedException if failed
+        lockManager.requestLock(tid, pid, perm);
         
         // If page already in buffer
         if(pages.get(pid) != null){
@@ -183,13 +155,13 @@ public class BufferPool {
         }
         for(PageId pid: pageTransactions.get(tid)){
             if(pages.containsKey(pid) && 
-                    pages.get(pid).isDirty() != null){
+                    pages.get(pid).isDirty() == tid){
                 // If Commit then flush
                 if(commit)
                     flushPage(pid);
-                // Else if Abort
+                // Else if Abort then
+                // Revert to on disk page
                 else{
-                    // Revert to on disk page
                     DbFile dbFile = Database.
                             getCatalog().getDbFile(pid.getTableId());
                     Page onDiskPage = dbFile.readPage(pid);
